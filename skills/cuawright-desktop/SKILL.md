@@ -17,6 +17,8 @@ artifacts; you do not act as the desktop Actor.
 
 Repository root for this checkout: `{{CUAWRIGHT_ROOT}}`.
 
+> 桌面端自动化若目标机已装「通用自动化项目框架 v6.0」，优先用它的 `07操作桌面端A.resource`（Airtest）/ `07操作桌面端B.resource` 组件写 `.robot` 用例，和网页端保持同一套框架与门禁。本技能只在需要 OSWorld-V2 基准复现、或需要 CUAWright 的桌面 Actor 循环时才用。
+
 ## Two workflows
 
 | Command | Loads a task class | Evaluator and score |

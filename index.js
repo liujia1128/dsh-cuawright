@@ -34,6 +34,21 @@ function detectCheckout() {
   return null
 }
 
+/**
+ * Root of the 通用自动化项目框架 checkout the generated Robot Framework suites
+ * target. Resolution order: the row's `rfFrameworkRoot` config, then the
+ * `RF_FRAMEWORK_ROOT` environment variable. There is no auto-detection: the
+ * framework lives wherever the user keeps it, and a wrong guess would make the
+ * agent write suites into an unrelated tree.
+ */
+function detectFrameworkRoot(config) {
+  const candidates = [config?.rfFrameworkRoot, process.env.RF_FRAMEWORK_ROOT]
+  for (const candidate of candidates) {
+    if (candidate && existsSync(join(candidate, '04技术组件'))) return candidate
+  }
+  return null
+}
+
 /** Minimal `---` frontmatter reader: flat `key: value` pairs and a body. */
 function parseSkillFile(text) {
   const match = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?([\s\S]*)$/.exec(text)
@@ -54,14 +69,22 @@ function parseSkillFile(text) {
   return { data, body: match[2] }
 }
 
-function renderBody(body, checkout) {
-  const root = checkout ?? 'the CUAWright checkout root (the directory holding pyproject.toml)'
-  return body.replaceAll('{{CUAWRIGHT_ROOT}}', root)
+function renderBody(body, tokens) {
+  // Every fallback stays inside backticks in the skill text, so it reads as a
+  // value the agent must resolve rather than as a runnable path.
+  let rendered = body
+  for (const [token, value] of Object.entries(tokens)) {
+    rendered = rendered.replaceAll(token, value)
+  }
+  return rendered
 }
 
-export function apply(ctx) {
+export function apply(ctx, config = {}) {
   if (!existsSync(SKILLS_ROOT)) return
-  const checkout = detectCheckout()
+  const tokens = {
+    '{{CUAWRIGHT_ROOT}}': detectCheckout() ?? '<CUAWright checkout>',
+    '{{RF_FRAMEWORK_ROOT}}': detectFrameworkRoot(config) ?? '<通用自动化项目框架根目录>',
+  }
 
   for (const entry of readdirSync(SKILLS_ROOT, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
@@ -91,7 +114,7 @@ export function apply(ctx) {
         provider: 'cuawright',
         path: file,
         resourceBase: { kind: 'directory', path: dir },
-        content: renderBody(body, checkout),
+        content: renderBody(body, tokens),
       }),
     )
   }

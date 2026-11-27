@@ -1,111 +1,87 @@
-# Workflow (DeepSeek Harness)
+# 工作流（Robot Framework 版）
 
-Detailed expansion of the six-step CUAWright loop, adapted from the Claude Code
-plugin. The original loop relied on `cuawright.webwright.tools.image_qa` for
-visual QA and `cuawright.webwright.tools.self_reflection` for the final verdict.
-Both are replaced here by your native abilities — the `read` tool on PNG files
-plus reasoning against `plan.md`. No `OPENAI_API_KEY` is required.
+六步闭环。上游 CUAWright 用 `image_qa` / `self_reflection` 做视觉与终判，这里由你直接读截图、直接看 robot 结果替代，不需要额外模型 Key。
 
-## 1. Plan
+## 1. 计划
 
-Parse the task into critical points (CPs) and write `WORKSPACE_DIR/plan.md`:
+把任务拆成关键点 CP1..CPn，写 `<工作区>/plan.md`：
 
 ```markdown
-# Task
-<verbatim task description>
+# 任务
+<用户原话>
 
-# Critical Points
-- [ ] CP1: <constraint / filter / sort / selection / required datum>
+# 关键点
+- [ ] CP1: <约束 / 筛选 / 排序 / 选项 / 必得数据>
 - [ ] CP2: ...
 ```
 
-Rules for CPs:
+规则：
 
-- One CP per independently verifiable requirement.
-- Numeric, date, quantity and unit CPs must be exact.
-- Ranking CPs ("cheapest", "best-selling", "highest-rated") must reference the
-  site's actual sort or filter control.
-- If the task asks for a final datum, make it its own CP, for example
-  `CP5: Record the displayed cheapest economy fare`.
+- 一个 CP 一条可独立验证的要求。
+- 数值、日期、数量、单位类 CP 必须精确。
+- 排序类 CP 必须落到站点自己的排序控件，不能靠结果顺序"看起来像"。
+- 任务要的最终数据（价格、编号、结论）单独成一个 CP。
 
-## 2. Explore
+## 2. 探针
 
-Goal: discover stable selectors, confirm every required filter control exists,
-and identify how to capture evidence for each CP.
+目标：确认选择器可用、控件确实存在、每个 CP 的取证方式可行。
 
-- Write scratch Playwright scripts (see `playwright_patterns.md`) inside
-  `WORKSPACE_DIR/` and run them with `pwsh`. Save scratch PNGs under
-  `WORKSPACE_DIR/screenshots/`, separate from `final_runs/`.
-- Print URL, title and `aria_snapshot()` for the region of interest at every
-  step.
-- Use `read` on saved PNGs to confirm UI state when ARIA evidence is ambiguous.
-- If a filter looks unavailable, expand drawers, accordions and mobile filter
-  panels and inspect again before concluding it does not exist.
-- A search-box query never substitutes for a dedicated filter control.
+- 先写一个最小 `.robot`（一个用例，只做打开 + 定位），放在 `<工作区>/probe/` 下，`Resource` 路径按该目录深度写对。
+- **先干跑**：`python -m robot --dryrun --outputdir <工作区>\probe\dryrun <探针套件>`，语法/关键字/参数问题在这一步暴露。
+- 再真跑，探索期截图存 `<工作区>/screenshots/`（与最终运行目录分开）。
+- 打印 URL、标题、可见标签；需要结构化信息时用 `网页端PW 获取元素个数和信息` 或 `Browser.Get Text`。
+- 筛选器"看起来没有"时，先展开抽屉/折叠区/移动端筛选面板再判断。
+- 搜索框查询**不能**代替显式筛选控件。
 
-## 3. Author `final_script.py`
+## 3. 写最终套件
 
-Create a fresh `final_runs/run_<id>/` (the next integer above any existing
-`run_*`) and place `final_script.py` inside it. Instrument per
-`playwright_patterns.md`:
+落到 `{{RF_FRAMEWORK_ROOT}}/01测试用例/<中文描述>.robot`，骨架见 `rf_suite_patterns.md`。要求：
 
-- viewport 1280×1800, headless local Firefox, no `full_page`;
-- one `final_execution_<step>_<action>.png` per CP;
-- one `step <n> action: <reason and action>` log line per constraint-relevant
-  interaction;
-- the final datum printed into `final_script_log.txt` at the end.
+- 每个 CP 一张 `Browser.Take Screenshot`（`fullPage=False`）+ 至少一条断言；
+- 用例之间不共享浏览器状态：每个用例自己 `网页端PW 打开浏览器`，`Test Teardown` 关浏览器；
+- 需要复用的动作封装成 `*** Keywords ***`，命名 `模块名 功能描述`，带 `[Documentation]` 块；
+- 外部地址、关键字、价格区间放 `*** Variables ***`，注释来源；
+- 只引一个能力入口，不要引兼容壳。
 
-Each screenshot should map to a CP from `plan.md` so verification is trivial.
+## 4. 运行
 
-## 4. Execute
-
-Run the script once with `pwsh`:
+在框架根执行：
 
 ```pwsh
-python final_runs\run_<id>\final_script.py
+python -m robot --outputdir .tmp\<task_id>\final_runs\run_<id> 01测试用例\<套件>.robot
 ```
 
-If it crashes, fix it inside the same run folder and re-execute — but if a
-partial run already produced screenshots that do not match the fixed flow,
-delete them so the run folder reflects a single clean execution.
+- `<id>` 取比现有 `run_*` 大的整数，每次干净运行一个目录。
+- 失败先看 `report.html` 里失败的用例，再看 `log.html` 对应步骤的关键字调用与截图。
+- 修套件后换 `run_<id+1>/` 重跑；不要把半成品痕迹留在旧目录里冒充一次干净运行。
+- 退出码：`0` 全通过；`1–249` 为失败用例数；`250+` 是命令或语法错误（套件根本没跑起来）。
 
-## 5. Self-verify (replaces `self_reflection`)
+## 5. 自检（替代 `self_reflection`）
 
-For every CP in `plan.md`:
+逐条走 `plan.md`：
 
-1. Identify the screenshot(s) and/or log line that provide evidence.
-2. `read` each cited PNG.
-3. Confirm the evidence is **unambiguous**:
-   - filter chip or selected state visibly applied, not hidden behind a closed
-     drawer;
-   - numeric and date values match exactly, not broadened;
-   - sort applied through the site's control, not implied by result order;
-   - the required submit, search or apply action visibly taken;
-   - the final datum legibly displayed.
-4. Tick the CP only when the evidence is concrete. Be harsh on partial,
-   occluded or ambiguous states.
+1. 找到该 CP 的截图路径与对应断言；
+2. 用 `read` 打开 `<运行输出>/screenshots/CP<n>_*.png`；
+3. 确认证据**无歧义**：
+   - 筛选 chip / 选中态确实可见，没被关闭的抽屉藏起来；
+   - 数值与日期完全一致，没有放宽；
+   - 排序确实是站点控件生效，而不是你自己排的；
+   - 提交/查询/应用动作确实执行过；
+   - 最终数据清晰可读；
+4. 只有证据确凿才勾掉 CP。含糊、遮挡、部分生效一律算未通过。
 
-If any CP fails, diagnose the *specific* issue — wrong filter value, missing
-control, hidden chip, broadened range, missing confirmation, missing
-screenshot — then fix `final_script.py`, run it again inside
-`final_runs/run_<id+1>/`, and re-verify against `plan.md`.
+任一 CP 不通过：定位到**具体**问题（选择器失效、控件不存在、chip 被隐藏、区间被放宽、断言写成了 `Log`），改套件，`run_<id+1>/` 重跑，再自检。
 
-Empty result sets are acceptable when the correct filters were demonstrably
-applied.
+结果为空但筛选确实正确应用时，可以用空结果作为正确答案——前提是断言写成了"筛选条件已应用"，而不是"必须有数据"。
 
-## 6. Done
+## 6. 收尾
 
-Stop only when **all** of the following are true:
+全部满足才算完成：
 
-1. `plan.md` exists with every CP enumerated as a checklist item.
-2. `final_runs/run_<id>/final_script.py` ran cleanly from scratch and produced
-   `final_script_log.txt` plus all CP screenshots.
-3. Every CP is checked off with a cited screenshot and/or log line.
-4. The final datum, if the task asked for one, is reported to the user verbatim
-   and is also present in `final_script_log.txt`.
-5. `Get-ChildItem -Recurse final_runs\run_<id>` and
-   `Get-Content final_runs\run_<id>\final_script_log.txt` show the expected
-   artifacts.
+1. `plan.md` 里 CP 全部勾选，且每条都指得出截图或断言；
+2. `01测试用例/<套件>.robot` 从干净状态跑通，`output.xml` 里该用例 PASS；
+3. `<运行输出>/screenshots/` 里 CP 截图齐全；
+4. 最终数据（如果任务要）已明确报告给用户；
+5. 报告里给出套件路径、运行输出路径、以及复跑命令（含 `--variable` 用法，如做了参数化）。
 
-If any of those is false, do not declare done — diagnose, fix, and re-run in a
-new `run_<id+1>/`.
+任何一条不满足就不要宣布完成——定位、修、重跑。

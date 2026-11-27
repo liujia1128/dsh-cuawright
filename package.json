@@ -1,6 +1,6 @@
 {
   "name": "dsh-cuawright",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CUAWright browser and desktop skills for DeepSeek Harness.",
   "private": true,
   "type": "module",
@@ -36,9 +36,13 @@
     "locale/*.json",
     "icon.svg",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "INSTALL.md",
+    "assets"
   ],
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" }
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }
