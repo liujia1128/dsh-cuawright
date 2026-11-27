@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "CUAWright",
+    "description": "Browser and desktop automation skills ported from CUAWright (formerly Webwright). Adds two skills to the catalog: cuawright-web drives a local Playwright browser one shell command at a time and keeps plan.md, final_runs/run_<id>/ scripts, screenshots and an action log in the workspace; cuawright-desktop runs OSWorld-V2 Ubuntu VM tasks through the cuawright desktop CLI. The agent runs the loop natively, so no extra model API key is needed for the browser workflow. Turn the plugin off to remove both skills from the catalog."
+  }
+}

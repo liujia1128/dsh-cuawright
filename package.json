@@ -1,0 +1,44 @@
+{
+  "name": "dsh-cuawright",
+  "version": "0.1.0",
+  "description": "CUAWright browser and desktop skills for DeepSeek Harness.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "liujia1128",
+    "url": "https://github.com/liujia1128"
+  },
+  "homepage": "https://github.com/liujia1128/dsh-cuawright",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liujia1128/dsh-cuawright.git"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cuawright",
+    "webwright",
+    "playwright",
+    "osworld",
+    "skill",
+    "browser-automation"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "skills",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" }
+  }
+}

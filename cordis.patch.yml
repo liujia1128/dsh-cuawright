@@ -1,0 +1,6 @@
+# DeepSeek Harness bundle layer for CUAWright.
+# Inserts one Host plugin row; index.js registers the bundled skills on `ctx.skills`.
+- insert:
+    - id: cuawright
+      name: dsh-cuawright
+      config: {}

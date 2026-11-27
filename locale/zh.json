@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "CUAWright",
+    "description": "从 CUAWright（原 Webwright）移植的浏览器与桌面自动化技能。向技能目录加入两个技能：cuawright-web 每次用一条 shell 命令驱动本地 Playwright 浏览器，并在工作区保留 plan.md、final_runs/run_<id>/ 脚本、截图和操作日志；cuawright-desktop 通过 cuawright desktop 命令行在 OSWorld-V2 Ubuntu 虚拟机中执行任务。浏览器流程由智能体原生驱动，不需要额外的模型 API Key。关闭插件即从技能目录移除这两个技能。"
+  }
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" role="img" aria-label="CUAWright">
+  <g fill="none" stroke="#3f6fd8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5.5" y="7.5" width="25" height="21" rx="3.5"/>
+    <path d="M5.5 13.5h25"/>
+    <path d="M10.5 18.5l3.5 3-3.5 3"/>
+    <path d="M17 24.5h4.5"/>
+  </g>
+</svg>
